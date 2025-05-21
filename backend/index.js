@@ -7,7 +7,7 @@ const router = require('./routes/routes')
 
 const app = express()
 app.use(cors({
-  origin: 'http://localhost:5173', // or your frontend URL
+  origin: 'https://attendance-management-kappa.vercel.app', // or your frontend URL
   credentials: true
 }));
 app.use(express.json())
