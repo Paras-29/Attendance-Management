@@ -20,7 +20,7 @@ const Dashboard = () => {
   const fetchAttendance = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/attendance/today");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/attendance/today`);
       const data = await res.json();
       setEmployees(data);
       setLoading(false);
@@ -91,7 +91,7 @@ const Dashboard = () => {
                     <div className="p-2 border-2 border-blue-500 rounded-lg relative overflow-hidden bg-white cursor-pointer hover:scale-105 transition-transform">
                       <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                       <QRCodeCanvas
-                        value="http://localhost:3000/mark-attendance"
+                        value="https://attendance-management-kappa.vercel.app/mark-attendance"
                         size={192}
                         bgColor="#ffffff"
                         fgColor="#000000"

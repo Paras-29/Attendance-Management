@@ -34,7 +34,7 @@ const MarkAttendance = () => {
           setLocation({ latitude, longitude, placeName });
 
           // Send attendance to backend (you can also send placeName if you want)
-          const response = await fetch("http://localhost:5000/api/attendance/mark", {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/attendance/mark`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

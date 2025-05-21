@@ -10,7 +10,7 @@ const Employees = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch("http://localhost:5000/api/employees")
+    fetch(`${import.meta.env.VITE_API_URL}/api/employees`)
       .then((res) => res.json())
       .then((data) => {
         setEmployees(data);
@@ -24,7 +24,7 @@ const Employees = () => {
 
   const handleAddEmployee = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/employees", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/employees`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -51,7 +51,7 @@ const Employees = () => {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/employees/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/employees/${id}`, {
         method: "DELETE",
       });
 
