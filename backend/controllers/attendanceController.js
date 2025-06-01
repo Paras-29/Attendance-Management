@@ -1,6 +1,8 @@
+// controllers/attendanceController.js
 const Attendance = require("../models/Attendance");
 const Employee = require("../models/Employee");
 
+// Mark Attendance
 const markAttendance = async (req, res) => {
   const { email, latitude, longitude, timestamp, placeName } = req.body;
 
@@ -16,7 +18,8 @@ const markAttendance = async (req, res) => {
 
     const attendance = new Attendance({
       name: employee.name,
-      location: { latitude, longitude ,placeName},
+      employeeId: employee._id,
+      location: { latitude, longitude, placeName },
       timestamp,
     });
 
@@ -28,10 +31,10 @@ const markAttendance = async (req, res) => {
   }
 };
 
+// Get Today's Attendance
 const getTodayAttendance = async (req, res) => {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-
   const end = new Date();
   end.setHours(23, 59, 59, 999);
 
@@ -47,5 +50,4 @@ const getTodayAttendance = async (req, res) => {
   }
 };
 
-
-module.exports = { markAttendance, getTodayAttendance, };
+module.exports = { markAttendance, getTodayAttendance };

@@ -2,10 +2,11 @@ const mongoose = require("mongoose");
 
 const attendanceSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
   location: {
     latitude: Number,
     longitude: Number,
-    placeName: String, // Add this line
+    placeName: String,
   },
   timestamp: {
     type: Date,

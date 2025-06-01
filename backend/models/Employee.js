@@ -1,23 +1,27 @@
 const mongoose = require('mongoose');
+const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const employeeSchema = new mongoose.Schema({
-   name: {
+ 
+  name: {
     type: String,
     required: true,
   },
-   email: {
+  email: {
     type: String,
     required: true,
     unique: true
   },
-   contact: {
+  contact: {
     type: String,
     required: true,
     unique: true
   },
 });
 
+// Auto-increment the 'id' field
+
+
 const Employee = mongoose.model("Employee", employeeSchema);
 
-module.exports = Employee
-
+module.exports = Employee;
