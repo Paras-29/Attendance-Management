@@ -28,7 +28,7 @@ const createEmployee = async (req, res) => {
   } catch (error) {
     console.log(error);
     
-    res.status(400).json({ message: "bad request",error });
+    res.status(400).json({ message: "Phone can't be same or something else error",error });
   }
 };
 
