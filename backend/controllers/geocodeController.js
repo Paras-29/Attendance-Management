@@ -20,7 +20,71 @@ const geocode = async (req, res) => {
       });
     }
 
-    // First get the place_id
+    // First try to get a specific place using Places API with a very small radius
+    try {
+      const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=20&rankby=distance&key=${apiKey}`;
+      const { data: placesData } = await axios.get(placesUrl);
+      
+      if (placesData.status === 'OK' && placesData.results.length > 0) {
+        const closestPlace = placesData.results[0];
+        let placeName = closestPlace.name;
+        
+        // Get the place details for more information
+        const placeDetailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${closestPlace.place_id}&fields=name,formatted_address,address_components&key=${apiKey}`;
+        const { data: placeDetails } = await axios.get(placeDetailsUrl);
+        
+        if (placeDetails.status === 'OK' && placeDetails.result) {
+          const result = placeDetails.result;
+          
+          // Try to construct a more specific address
+          const addressComponents = result.address_components || [];
+          const streetNumber = addressComponents.find(c => c.types.includes('street_number'))?.long_name;
+          const route = addressComponents.find(c => c.types.includes('route'))?.long_name;
+          const sublocality = addressComponents.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+          const locality = addressComponents.find(c => c.types.includes('locality'))?.long_name || 'Jaipur';
+          
+          // Build the address parts
+          const addressParts = [];
+          if (streetNumber && route) {
+            addressParts.push(`${streetNumber} ${route}`);
+          } else if (route) {
+            addressParts.push(route);
+          }
+          if (sublocality) {
+            addressParts.push(sublocality);
+          }
+          if (locality) {
+            addressParts.push(locality);
+          }
+          
+          // Use the most specific address we can construct
+          if (addressParts.length > 0) {
+            placeName = addressParts.join(', ');
+          } else {
+            // Fallback to the place name with vicinity
+            placeName = closestPlace.name;
+            if (closestPlace.vicinity) {
+              placeName += `, ${closestPlace.vicinity}`;
+            }
+          }
+        }
+        
+        return res.json({ 
+          success: true,
+          placeName: placeName,
+          location: placeName,
+          coordinates: {
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lon)
+          }
+        });
+      }
+    } catch (placeError) {
+      console.error('Error getting place details:', placeError);
+      // Continue with geocoding if place search fails
+    }
+
+    // Fallback to geocoding if place search didn't work
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`;
     console.log(`Making geocoding request to: ${geocodeUrl}`);
     
@@ -31,37 +95,29 @@ const geocode = async (req, res) => {
       const result = geocodeData.results[0];
       let placeName = result.formatted_address;
       
-      // If we got a plus code, try to get a more specific place name
-      if (placeName.includes('+')) {
-        try {
-          // Try to get nearby places
-          const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=50&key=${apiKey}`;
-          const { data: placesData } = await axios.get(placesUrl);
-          
-          if (placesData.status === 'OK' && placesData.results.length > 0) {
-            // Get the closest place
-            const closestPlace = placesData.results[0];
-            placeName = closestPlace.name;
-            
-            // Add the vicinity if available
-            if (closestPlace.vicinity) {
-              placeName += `, ${closestPlace.vicinity}`;
-            }
-            
-            // Add the area if it's not already included
-            const area = result.address_components.find(c => 
-              c.types.includes('sublocality_level_1') || 
-              c.types.includes('locality')
-            )?.long_name;
-            
-            if (area && !placeName.includes(area)) {
-              placeName += `, ${area}`;
-            }
-          }
-        } catch (placeError) {
-          console.error('Error getting place details:', placeError);
-          // Continue with the original formatted address if place details fail
-        }
+      // Try to extract a more specific address from the components
+      const addressComponents = result.address_components;
+      const streetNumber = addressComponents.find(c => c.types.includes('street_number'))?.long_name;
+      const route = addressComponents.find(c => c.types.includes('route'))?.long_name;
+      const sublocality = addressComponents.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+      const locality = addressComponents.find(c => c.types.includes('locality'))?.long_name || 'Jaipur';
+      
+      // Build a more specific address
+      const addressParts = [];
+      if (streetNumber && route) {
+        addressParts.push(`${streetNumber} ${route}`);
+      } else if (route) {
+        addressParts.push(route);
+      }
+      if (sublocality) {
+        addressParts.push(sublocality);
+      }
+      if (locality) {
+        addressParts.push(locality);
+      }
+      
+      if (addressParts.length > 0) {
+        placeName = addressParts.join(', ');
       }
       
       res.json({ 
