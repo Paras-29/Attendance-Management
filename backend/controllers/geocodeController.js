@@ -20,28 +20,61 @@ const geocode = async (req, res) => {
       });
     }
 
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`;
+    // First get the place_id
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`;
+    console.log(`Making geocoding request to: ${geocodeUrl}`);
     
-    console.log(`Making geocoding request to: ${url}`);
+    const { data: geocodeData } = await axios.get(geocodeUrl);
+    console.log('Geocoding API response:', geocodeData);
     
-    const { data } = await axios.get(url);
-    
-    console.log('Geocoding API response:', data);
-    
-    if (data.status === 'OK' && data.results.length > 0) {
-      const result = data.results[0];
+    if (geocodeData.status === 'OK' && geocodeData.results.length > 0) {
+      const result = geocodeData.results[0];
+      let placeName = result.formatted_address;
+      
+      // If we got a plus code, try to get a more specific place name
+      if (placeName.includes('+')) {
+        try {
+          // Try to get nearby places
+          const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=50&key=${apiKey}`;
+          const { data: placesData } = await axios.get(placesUrl);
+          
+          if (placesData.status === 'OK' && placesData.results.length > 0) {
+            // Get the closest place
+            const closestPlace = placesData.results[0];
+            placeName = closestPlace.name;
+            
+            // Add the vicinity if available
+            if (closestPlace.vicinity) {
+              placeName += `, ${closestPlace.vicinity}`;
+            }
+            
+            // Add the area if it's not already included
+            const area = result.address_components.find(c => 
+              c.types.includes('sublocality_level_1') || 
+              c.types.includes('locality')
+            )?.long_name;
+            
+            if (area && !placeName.includes(area)) {
+              placeName += `, ${area}`;
+            }
+          }
+        } catch (placeError) {
+          console.error('Error getting place details:', placeError);
+          // Continue with the original formatted address if place details fail
+        }
+      }
       
       res.json({ 
         success: true,
-        placeName: result.formatted_address,
-        location: result.formatted_address, // Add this for frontend compatibility
+        placeName: placeName,
+        location: placeName,
         addressComponents: result.address_components,
         coordinates: {
           latitude: parseFloat(lat),
           longitude: parseFloat(lon)
         }
       });
-    } else if (data.status === 'ZERO_RESULTS') {
+    } else if (geocodeData.status === 'ZERO_RESULTS') {
       res.json({ 
         success: true,
         placeName: `Location: ${lat}, ${lon}`,
@@ -49,11 +82,11 @@ const geocode = async (req, res) => {
         message: "No address found for these coordinates"
       });
     } else {
-      console.error('Geocoding API error:', data);
+      console.error('Geocoding API error:', geocodeData);
       res.status(400).json({ 
         success: false,
-        message: `Geocoding failed: ${data.status}`,
-        error: data.error_message || 'Unknown error'
+        message: `Geocoding failed: ${geocodeData.status}`,
+        error: geocodeData.error_message || 'Unknown error'
       });
     }
   } catch (err) {
